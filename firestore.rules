@@ -1,0 +1,208 @@
+// Firestore Security Rules for Samavastra ERP
+// Deploy via: Firebase Console → Firestore → Rules
+// Or: firebase deploy --only firestore:rules
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ─────────────────────────────────────────
+    // HELPER FUNCTIONS
+    // ─────────────────────────────────────────
+
+    // Check if user is authenticated
+    function isAuth() {
+      return request.auth != null;
+    }
+
+    // Get the current user's Firestore profile
+    function getUserProfile() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    // Check user role
+    function hasRole(role) {
+      return isAuth() && getUserProfile().role == role;
+    }
+
+    function isCEO() {
+      return hasRole('CEO');
+    }
+
+    function isManager() {
+      return isAuth() && getUserProfile().role in ['CEO', 'Manager'];
+    }
+
+    function isStaff() {
+      return isAuth() && getUserProfile().role in ['CEO', 'Manager', 'Staff'];
+    }
+
+    function isAccountant() {
+      return isAuth() && getUserProfile().role in ['CEO', 'Accountant'];
+    }
+
+    function isActiveUser() {
+      return isAuth() && getUserProfile().isActive == true;
+    }
+
+    // ─────────────────────────────────────────
+    // USER PROFILES
+    // ─────────────────────────────────────────
+    match /users/{userId} {
+      // Users can read their own profile; CEO can read all
+      allow read: if isAuth() && (request.auth.uid == userId || isCEO());
+      // Users can create their own profile on signup
+      allow create: if isAuth() && request.auth.uid == userId;
+      // Users can update their own profile; CEO can update any
+      allow update: if isAuth() && (request.auth.uid == userId || isCEO());
+      // Only CEO can delete users
+      allow delete: if isCEO();
+    }
+
+    // ─────────────────────────────────────────
+    // SALES MODULE
+    // ─────────────────────────────────────────
+    match /schools/{docId} {
+      allow read: if isStaff();
+      allow create, update: if isStaff();
+      allow delete: if isManager();
+    }
+
+    match /leads/{docId} {
+      allow read: if isStaff();
+      allow write: if isStaff();
+    }
+
+    match /quotations/{docId} {
+      allow read: if isStaff();
+      allow create, update: if isStaff();
+      allow delete: if isManager();
+    }
+
+    match /salesOrders/{docId} {
+      allow read: if isStaff();
+      allow create: if isStaff();
+      allow update: if isManager(); // only managers/CEO can approve
+      allow delete: if isCEO();
+    }
+
+    // ─────────────────────────────────────────
+    // PRODUCTION MODULE
+    // ─────────────────────────────────────────
+    match /productionJobs/{docId} {
+      allow read: if isStaff();
+      allow create: if isManager();
+      allow update: if isStaff(); // staff can update stage progress
+      allow delete: if isCEO();
+    }
+
+    // ─────────────────────────────────────────
+    // INVENTORY MODULE
+    // ─────────────────────────────────────────
+    match /rawMaterials/{docId} {
+      allow read: if isStaff();
+      allow write: if isStaff();
+    }
+
+    match /finishedGoods/{docId} {
+      allow read: if isStaff();
+      allow write: if isStaff();
+    }
+
+    match /stockMovements/{docId} {
+      allow read: if isStaff();
+      allow create: if isStaff();
+      allow update, delete: if isManager();
+    }
+
+    // ─────────────────────────────────────────
+    // PROCUREMENT MODULE
+    // ─────────────────────────────────────────
+    match /suppliers/{docId} {
+      allow read: if isStaff();
+      allow write: if isStaff();
+    }
+
+    match /purchaseRequests/{docId} {
+      allow read: if isStaff();
+      allow create: if isStaff();
+      allow update: if isManager(); // approval requires manager
+      allow delete: if isCEO();
+    }
+
+    match /purchaseOrders/{docId} {
+      allow read: if isStaff();
+      allow create: if isManager();
+      allow update: if isStaff();
+      allow delete: if isCEO();
+    }
+
+    // ─────────────────────────────────────────
+    // LOGISTICS MODULE
+    // ─────────────────────────────────────────
+    match /shipments/{docId} {
+      allow read: if isStaff();
+      allow write: if isStaff();
+    }
+
+    // ─────────────────────────────────────────
+    // ACCOUNTS MODULE
+    // ─────────────────────────────────────────
+    match /invoices/{docId} {
+      allow read: if isAccountant();
+      allow create, update: if isAccountant();
+      allow delete: if isCEO();
+    }
+
+    match /payments/{docId} {
+      allow read: if isAccountant();
+      allow create: if isAccountant();
+      allow update, delete: if isCEO();
+    }
+
+    match /expenses/{docId} {
+      allow read: if isAccountant();
+      allow create: if isStaff();
+      allow update, delete: if isAccountant();
+    }
+
+    // ─────────────────────────────────────────
+    // HR MODULE
+    // ─────────────────────────────────────────
+    match /employees/{docId} {
+      allow read: if isManager();
+      allow create, update: if isManager();
+      allow delete: if isCEO();
+    }
+
+    match /attendance/{docId} {
+      allow read: if isManager();
+      allow create, update: if isStaff();
+      allow delete: if isManager();
+    }
+
+    // ─────────────────────────────────────────
+    // CSAT / CSER
+    // ─────────────────────────────────────────
+    match /feedback/{docId} {
+      allow read: if isManager();
+      allow create: if isStaff();
+      allow update, delete: if isManager();
+    }
+
+    match /complaints/{docId} {
+      allow read: if isStaff();
+      allow create: if isStaff();
+      allow update: if isStaff(); // staff can resolve/escalate
+      allow delete: if isManager();
+    }
+
+    // ─────────────────────────────────────────
+    // SETTINGS (CEO only)
+    // ─────────────────────────────────────────
+    match /settings/{docId} {
+      allow read: if isAuth();
+      allow write: if isCEO();
+    }
+  }
+}

@@ -37,8 +37,8 @@ const LoginPage = () => {
           className="login-form"
           initialValues={{
             remember: true,
-            email:'admin@admin.com',
-            password:'admin123',
+            email: 'admin@sam.com',
+            password: '123456',
           }}
           onFinish={onFinish}
         >
@@ -50,6 +50,7 @@ const LoginPage = () => {
               className="login-form-button"
               loading={isLoading}
               size="large"
+              style={{ background: '#F5A623', borderColor: '#F5A623', color: '#1A1A2E', marginTop: 16 }}
             >
               {translate('Log in')}
             </Button>
@@ -59,7 +60,7 @@ const LoginPage = () => {
     );
   };
 
-  return <AuthModule authContent={<FormContainer />} AUTH_TITLE="Sign in" />;
+  return <AuthModule authContent={<FormContainer />} AUTH_TITLE="Welcome to Samavastra" />;
 };
 
 export default LoginPage;

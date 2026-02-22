@@ -5,7 +5,6 @@ import { Layout, Col, Divider, Typography } from 'antd';
 import AuthLayout from '@/layout/AuthLayout';
 import SideContent from './SideContent';
 
-import logo from '@/style/images/idurar-crm-erp.svg';
 
 const { Content } = Layout;
 const { Title } = Typography;
@@ -22,16 +21,9 @@ const AuthModule = ({ authContent, AUTH_TITLE, isForRegistre = false }) => {
         }}
       >
         <Col xs={{ span: 24 }} sm={{ span: 24 }} md={{ span: 0 }} span={0}>
-          <img
-            src={logo}
-            alt="Logo"
-            style={{
-              margin: '0px auto 20px',
-              display: 'block',
-            }}
-            height={63}
-            width={220}
-          />
+          <Title level={1} style={{ fontSize: 36, color: '#0a1628', margin: '0px auto 20px', display: 'block' }}>
+            Samavastra
+          </Title>
           <div className="space10" />
         </Col>
         <Title level={1}>{translate(AUTH_TITLE)}</Title>
